@@ -12,13 +12,14 @@ namespace X2SaveDataLib {
 		Unknown = 0,
 		XCom2 = 0x14,
 		XCom2WotC = 0x15,
+		XCom2WotC_TLP = 0x16,
 	}
 
 	public class X2SaveGame {
 		/// <summary>
-		/// Specifies the encoding that is used internally to decode strings.
+		/// Specifies the default encoding that is used internally to decode strings.
 		/// </summary>
-		public static Encoding StringEncoder = Encoding.GetEncoding("iso-8859-1");
+		public static Encoding DefaultEncoder = Encoding.GetEncoding("iso-8859-1");
 
 		public X2SaveVersion Version { get; private set; }
 		public uint CampaignNumber { get; private set; }
@@ -69,14 +70,22 @@ namespace X2SaveDataLib {
 		}
 
 		/// <summary>
-		/// Parses the given data as a string, that is assumed to be prefixed with a UInt32 length field.
+		/// Parses the given data as a string, that is assumed to be prefixed with a Int32 length field.
 		/// </summary>
 		/// <param name="data">Savegame data. The bytes that have been processed will be removed from the list.</param>
 		/// <returns>The string without the trailing \0 from the save file.</returns>
 		private static string ParseX2String(List<byte> data) {
-			var strLength = ParseUInt32(data);
-			var strData = ParseRange(data, (int)strLength);
-			var str = StringEncoder.GetString(strData.ToArray());
+			Encoding encoder = DefaultEncoder;
+			var strLength = ParseInt32(data);
+
+			if (strLength < 0) {
+				encoder = Encoding.Unicode;
+				strLength = -2 * strLength;
+			}
+
+			var strData = ParseRange(data, strLength);
+			
+			var str = encoder.GetString(strData.ToArray());
 			return str.TrimEnd('\0');
 		}
 
@@ -120,6 +129,21 @@ namespace X2SaveDataLib {
 				bytes.Reverse();
 			
 			return BitConverter.ToUInt32(bytes.ToArray(), 0);
+		}
+
+		/// <summary>
+		/// Interprets the first 4-Bytes of the given data as a little endian encoded 4-byte signed integer.
+		/// </summary>
+		/// <param name="data">Savegame data. The bytes that have been processed will be removed from the list.</param>
+		/// <returns>The value.</returns>
+		private static int ParseInt32(List<byte> data) {
+			var bytes = ParseRange(data, sizeof(int));
+
+			// XCOM2 uses little endian
+			if (!BitConverter.IsLittleEndian)
+				bytes.Reverse();
+
+			return BitConverter.ToInt32(bytes.ToArray(), 0);
 		}
 
 		public static bool TryParse(List<byte> data, out X2SaveGame saveGame) {
