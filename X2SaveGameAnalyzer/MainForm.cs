@@ -87,6 +87,8 @@ namespace X2SaveGameAnalyzer {
 				lCreated.Text = "";
 				lLastModified.Text = "";
 				lName.Text = "";
+
+				tMods.Clear();
 			}
 		}
 
@@ -97,7 +99,7 @@ namespace X2SaveGameAnalyzer {
 
 			if (Directory.Exists(wotcSavegamePath))
 				openSaveGameDialog.InitialDirectory = wotcSavegamePath;
-			else if (Directory.Exists(wotcSavegamePath))
+			else if (Directory.Exists(vanillaSavegamePath))
 				openSaveGameDialog.InitialDirectory = vanillaSavegamePath;
 
 			var result = openSaveGameDialog.ShowDialog();
